@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Calendar — My Server</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+
+  <nav>
+    <div class="nav-inner">
+      <a class="nav-brand" href="/">My Server</a>
+      <ul class="nav-links">
+        <li><a href="/">Home</a></li>
+        <li><a href="/about">About</a></li>
+        <li><a href="/bookmarks">Bookmarks</a></li>
+        <li><a href="/calendar" class="active">Calendar</a></li>
+        <li><a href="/contact">Contact</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <main>
+    <div class="cal-nav">
+      <button id="cal-prev" class="cal-nav-btn">&#8249;</button>
+      <h1 id="cal-month"></h1>
+      <button id="cal-next" class="cal-nav-btn">&#8250;</button>
+    </div>
+
+    <div class="cal-day-names">
+      <span>Sun</span><span>Mon</span><span>Tue</span>
+      <span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span>
+    </div>
+
+    <div id="cal-grid" class="cal-grid"></div>
+  </main>
+
+  <!-- Add event modal -->
+  <div id="cal-overlay" class="cal-overlay" hidden>
+    <div class="cal-modal" role="dialog" aria-modal="true" aria-labelledby="cal-modal-heading">
+      <h2 id="cal-modal-heading" class="cal-modal-heading">Add Event</h2>
+      <p id="cal-modal-date" class="cal-modal-date"></p>
+
+      <div class="cal-modal-field">
+        <label for="cal-ev-title">Title</label>
+        <input type="text" id="cal-ev-title" placeholder="Event title">
+      </div>
+
+      <div class="cal-modal-times">
+        <div class="cal-modal-field">
+          <label for="cal-ev-start">Start time</label>
+          <input type="time" id="cal-ev-start">
+        </div>
+        <div class="cal-modal-field">
+          <label for="cal-ev-end">End time</label>
+          <input type="time" id="cal-ev-end">
+        </div>
+      </div>
+
+      <div class="cal-modal-actions">
+        <button id="cal-modal-cancel" class="cal-modal-cancel-btn">Cancel</button>
+        <button id="cal-modal-add" class="submit-btn">Add event</button>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    <div class="footer-inner">
+      <span>&copy; 2024</span>
+      <a href="https://github.com" target="_blank" rel="noopener">GitHub</a>
+    </div>
+  </footer>
+
+  <script>
+    const MONTHS = ['January','February','March','April','May','June',
+                    'July','August','September','October','November','December'];
+
+    let year, month, events = [], pendingDate = null;
+
+    const overlay    = document.getElementById('cal-overlay');
+    const evTitle    = document.getElementById('cal-ev-title');
+    const evStart    = document.getElementById('cal-ev-start');
+    const evEnd      = document.getElementById('cal-ev-end');
+    const modalDate  = document.getElementById('cal-modal-date');
+
+    function fmtTime(t) {
+      if (!t) return '';
+      const [h, m] = t.split(':').map(Number);
+      const ampm = h >= 12 ? 'PM' : 'AM';
+      const h12 = h % 12 || 12;
+      return m === 0 ? `${h12} ${ampm}` : `${h12}:${String(m).padStart(2, '0')} ${ampm}`;
+    }
+
+    function fmtDate(ds) {
+      const [y, mo, d] = ds.split('-').map(Number);
+      return new Date(y, mo - 1, d).toLocaleDateString('en-US', {
+        weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+      });
+    }
+
+    function openModal(date) {
+      pendingDate = date;
+      modalDate.textContent = fmtDate(date);
+      evTitle.value = '';
+      evStart.value = '';
+      evEnd.value = '';
+      overlay.hidden = false;
+      evTitle.focus();
+    }
+
+    function closeModal() {
+      overlay.hidden = true;
+      pendingDate = null;
+    }
+
+    overlay.addEventListener('click', e => { if (e.target === overlay) closeModal(); });
+    document.getElementById('cal-modal-cancel').addEventListener('click', closeModal);
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+    document.getElementById('cal-modal-add').addEventListener('click', async () => {
+      const title = evTitle.value.trim();
+      if (!title) { evTitle.focus(); return; }
+      await fetch('/api/events', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ date: pendingDate, title, startTime: evStart.value, endTime: evEnd.value }),
+      });
+      closeModal();
+      fetchAndRender();
+    });
+
+    evTitle.addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('cal-modal-add').click(); });
+
+    function init() {
+      const now = new Date();
+      year = now.getFullYear();
+      month = now.getMonth();
+      fetchAndRender();
+    }
+
+    async function fetchAndRender() {
+      const monthStr = `${year}-${String(month + 1).padStart(2, '0')}`;
+      document.getElementById('cal-month').textContent = `${MONTHS[month]} ${year}`;
+      const res = await fetch(`/api/events?month=${monthStr}`);
+      events = await res.json();
+      renderGrid();
+    }
+
+    function dateStr(y, m, d) {
+      const dt = new Date(y, m, d);
+      return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
+    }
+
+    function renderGrid() {
+      const grid = document.getElementById('cal-grid');
+      grid.innerHTML = '';
+
+      const today = new Date();
+      const firstDow = new Date(year, month, 1).getDay();
+      const daysInMonth = new Date(year, month + 1, 0).getDate();
+      const daysInPrev = new Date(year, month, 0).getDate();
+      const totalCells = Math.ceil((firstDow + daysInMonth) / 7) * 7;
+
+      for (let i = firstDow - 1; i >= 0; i--)
+        grid.appendChild(makeCell(year, month - 1, daysInPrev - i, true));
+
+      for (let d = 1; d <= daysInMonth; d++) {
+        const isToday = today.getFullYear() === year && today.getMonth() === month && today.getDate() === d;
+        grid.appendChild(makeCell(year, month, d, false, isToday));
+      }
+
+      for (let d = 1; firstDow + daysInMonth + d - 1 < totalCells; d++)
+        grid.appendChild(makeCell(year, month + 1, d, true));
+    }
+
+    function makeCell(y, m, d, otherMonth, isToday = false) {
+      const ds = dateStr(y, m, d);
+      const dayEvents = events.filter(e => e.date === ds);
+
+      const cell = document.createElement('div');
+      cell.className = 'cal-day' + (otherMonth ? ' other-month' : '') + (isToday ? ' today' : '');
+
+      const num = document.createElement('span');
+      num.className = 'cal-day-num';
+      num.textContent = d;
+      cell.appendChild(num);
+
+      dayEvents.forEach(ev => {
+        const evEl = document.createElement('div');
+        evEl.className = 'cal-event';
+
+        const timeStr = ev.startTime
+          ? (ev.endTime ? `${fmtTime(ev.startTime)}–${fmtTime(ev.endTime)}` : fmtTime(ev.startTime))
+          : '';
+
+        const label = document.createElement('span');
+        label.className = 'cal-event-title';
+        label.textContent = timeStr ? `${timeStr} ${ev.title}` : ev.title;
+
+        const del = document.createElement('button');
+        del.className = 'cal-event-del';
+        del.textContent = '✕';
+        del.addEventListener('click', async e => {
+          e.stopPropagation();
+          await fetch(`/api/events/${ev.id}`, { method: 'DELETE' });
+          fetchAndRender();
+        });
+
+        evEl.appendChild(label);
+        evEl.appendChild(del);
+        cell.appendChild(evEl);
+      });
+
+      if (!otherMonth) {
+        cell.addEventListener('click', () => openModal(ds));
+      }
+
+      return cell;
+    }
+
+    document.getElementById('cal-prev').addEventListener('click', () => {
+      if (--month < 0) { month = 11; year--; }
+      fetchAndRender();
+    });
+
+    document.getElementById('cal-next').addEventListener('click', () => {
+      if (++month > 11) { month = 0; year++; }
+      fetchAndRender();
+    });
+
+    init();
+  </script>
+
+</body>
+</html>

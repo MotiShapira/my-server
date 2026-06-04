@@ -62,6 +62,40 @@ app.delete('/api/bookmarks/:id', (req, res) => {
   res.json(readBookmarks().filter(bm => bm.browserId === browserId));
 });
 
+app.get('/calendar', (req, res) => {
+  res.sendFile('calendar.html', { root: 'public' });
+});
+
+const EVENTS_FILE = path.join(__dirname, 'events.json');
+function readEvents() {
+  if (!fs.existsSync(EVENTS_FILE)) return [];
+  return JSON.parse(fs.readFileSync(EVENTS_FILE, 'utf8'));
+}
+function writeEvents(events) {
+  fs.writeFileSync(EVENTS_FILE, JSON.stringify(events, null, 2));
+}
+
+app.get('/api/events', (req, res) => {
+  const { month } = req.query;
+  const all = readEvents();
+  res.json(month ? all.filter(e => e.date.startsWith(month)) : all);
+});
+
+app.post('/api/events', (req, res) => {
+  const { date, title } = req.body;
+  if (!date || !title) return res.status(400).json({ error: 'date and title required' });
+  const all = readEvents();
+  const event = { id: randomUUID(), date, title };
+  all.push(event);
+  writeEvents(all);
+  res.json(event);
+});
+
+app.delete('/api/events/:id', (req, res) => {
+  writeEvents(readEvents().filter(e => e.id !== req.params.id));
+  res.json({ ok: true });
+});
+
 app.get('/api/time', (req, res) => {
   res.json({
     time: new Date().toLocaleTimeString(),
