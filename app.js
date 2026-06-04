@@ -15,7 +15,7 @@ function writeBookmarks(bookmarks) {
 app.use(express.static('public'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
-const port = 3000;
+const port = 8080;
 
 app.get('/', (req, res) => {
   res.send('Hello, World! This is my first server.');
