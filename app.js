@@ -81,11 +81,28 @@ app.get('/api/events', (req, res) => {
   res.json(month ? all.filter(e => e.date.startsWith(month)) : all);
 });
 
+function toMins(t) {
+  const [h, m] = t.split(':').map(Number);
+  return h * 60 + m;
+}
+
+function overlaps(a, b) {
+  if (!a.startTime || !b.startTime) return false;
+  const aS = toMins(a.startTime), bS = toMins(b.startTime);
+  if (a.endTime && b.endTime) return aS < toMins(b.endTime) && bS < toMins(a.endTime);
+  if (a.endTime) return bS >= aS && bS < toMins(a.endTime);
+  if (b.endTime) return aS >= bS && aS < toMins(b.endTime);
+  return aS === bS;
+}
+
 app.post('/api/events', (req, res) => {
-  const { date, title } = req.body;
+  const { date, title, startTime, endTime } = req.body;
   if (!date || !title) return res.status(400).json({ error: 'date and title required' });
   const all = readEvents();
-  const event = { id: randomUUID(), date, title };
+  const newEv = { date, title, startTime: startTime || '', endTime: endTime || '' };
+  if (startTime && all.filter(e => e.date === date).some(e => overlaps(e, newEv)))
+    return res.status(409).json({ error: 'This event overlaps with an existing one.' });
+  const event = { id: randomUUID(), ...newEv };
   all.push(event);
   writeEvents(all);
   res.json(event);

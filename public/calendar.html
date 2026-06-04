@@ -58,6 +58,8 @@
         </div>
       </div>
 
+      <p id="cal-modal-error" class="cal-modal-error" hidden></p>
+
       <div class="cal-modal-actions">
         <button id="cal-modal-cancel" class="cal-modal-cancel-btn">Cancel</button>
         <button id="cal-modal-add" class="submit-btn">Add event</button>
@@ -83,6 +85,7 @@
     const evStart    = document.getElementById('cal-ev-start');
     const evEnd      = document.getElementById('cal-ev-end');
     const modalDate  = document.getElementById('cal-modal-date');
+    const modalError = document.getElementById('cal-modal-error');
 
     function fmtTime(t) {
       if (!t) return '';
@@ -105,6 +108,7 @@
       evTitle.value = '';
       evStart.value = '';
       evEnd.value = '';
+      modalError.hidden = true;
       overlay.hidden = false;
       evTitle.focus();
     }
@@ -121,11 +125,18 @@
     document.getElementById('cal-modal-add').addEventListener('click', async () => {
       const title = evTitle.value.trim();
       if (!title) { evTitle.focus(); return; }
-      await fetch('/api/events', {
+      modalError.hidden = true;
+      const res = await fetch('/api/events', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ date: pendingDate, title, startTime: evStart.value, endTime: evEnd.value }),
       });
+      if (!res.ok) {
+        const { error } = await res.json();
+        modalError.textContent = error;
+        modalError.hidden = false;
+        return;
+      }
       closeModal();
       fetchAndRender();
     });
@@ -176,7 +187,14 @@
 
     function makeCell(y, m, d, otherMonth, isToday = false) {
       const ds = dateStr(y, m, d);
-      const dayEvents = events.filter(e => e.date === ds);
+      const dayEvents = events
+        .filter(e => e.date === ds)
+        .sort((a, b) => {
+          if (!a.startTime && !b.startTime) return 0;
+          if (!a.startTime) return 1;
+          if (!b.startTime) return -1;
+          return a.startTime.localeCompare(b.startTime);
+        });
 
       const cell = document.createElement('div');
       cell.className = 'cal-day' + (otherMonth ? ' other-month' : '') + (isToday ? ' today' : '');
