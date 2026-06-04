@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Contact — My Server</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+
+  <nav>
+    <div class="nav-inner">
+      <a class="nav-brand" href="/">My Server</a>
+      <ul class="nav-links">
+        <li><a href="/">Home</a></li>
+        <li><a href="/about">About</a></li>
+        <li><a href="/contact" class="active">Contact</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <main>
+    <h1>Contact</h1>
+    <p>Send me a message and I'll get back to you.</p>
+
+    <form class="contact-form" id="contactForm" novalidate>
+      <div class="form-group">
+        <label for="name">Name</label>
+        <input type="text" id="name" name="name" placeholder="Your name" required>
+        <span class="field-error" id="nameError"></span>
+      </div>
+      <div class="form-group">
+        <label for="email">Email</label>
+        <input type="email" id="email" name="email" placeholder="you@example.com" required>
+        <span class="field-error" id="emailError"></span>
+      </div>
+      <div class="form-group">
+        <label for="message">Message</label>
+        <textarea id="message" name="message" rows="5" placeholder="What's on your mind?" required></textarea>
+      </div>
+      <div id="formStatus" class="form-status" hidden></div>
+      <button type="submit" class="submit-btn">Send message</button>
+    </form>
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+      <span>&copy; 2024</span>
+      <a href="https://github.com" target="_blank" rel="noopener">GitHub</a>
+    </div>
+  </footer>
+
+  <script>
+    const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    function setError(input, errorEl, msg) {
+      input.classList.toggle('invalid', !!msg);
+      errorEl.textContent = msg;
+    }
+
+    function validateName(input) {
+      const msg = input.value.trim() ? '' : 'Name is required.';
+      setError(input, document.getElementById('nameError'), msg);
+      return !msg;
+    }
+
+    function validateEmail(input) {
+      const val = input.value.trim();
+      const msg = !val ? 'Email is required.'
+        : !EMAIL_RE.test(val) ? 'Please enter a valid email address.'
+        : '';
+      setError(input, document.getElementById('emailError'), msg);
+      return !msg;
+    }
+
+    const nameInput = document.getElementById('name');
+    const emailInput = document.getElementById('email');
+
+    nameInput.addEventListener('blur', () => validateName(nameInput));
+    nameInput.addEventListener('input', () => { if (nameInput.classList.contains('invalid')) validateName(nameInput); });
+    emailInput.addEventListener('blur', () => validateEmail(emailInput));
+    emailInput.addEventListener('input', () => { if (emailInput.classList.contains('invalid')) validateEmail(emailInput); });
+
+    document.getElementById('contactForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const form = e.target;
+      const btn = form.querySelector('.submit-btn');
+      const status = document.getElementById('formStatus');
+
+      const nameOk = validateName(nameInput);
+      const emailOk = validateEmail(emailInput);
+      if (!nameOk || !emailOk) return;
+
+      btn.disabled = true;
+      btn.textContent = 'Sending…';
+      status.hidden = true;
+
+      try {
+        const res = await fetch('/api/contact', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: form.name.value.trim(),
+            email: form.email.value.trim(),
+            message: form.message.value.trim(),
+          }),
+        });
+        const data = await res.json();
+        if (res.ok) {
+          status.className = 'form-status success';
+          status.textContent = 'Message sent! I\'ll be in touch soon.';
+          form.reset();
+        } else {
+          status.className = 'form-status error';
+          status.textContent = data.error || 'Something went wrong. Please try again.';
+        }
+      } catch {
+        status.className = 'form-status error';
+        status.textContent = 'Network error. Please try again.';
+      } finally {
+        status.hidden = false;
+        btn.disabled = false;
+        btn.textContent = 'Send message';
+      }
+    });
+  </script>
+
+</body>
+</html>
