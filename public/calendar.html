@@ -78,6 +78,12 @@
     const MONTHS = ['January','February','March','April','May','June',
                     'July','August','September','October','November','December'];
 
+    let browserId = localStorage.getItem('browserId');
+    if (!browserId) {
+      browserId = crypto.randomUUID();
+      localStorage.setItem('browserId', browserId);
+    }
+
     let year, month, events = [], pendingDate = null;
 
     const overlay    = document.getElementById('cal-overlay');
@@ -129,7 +135,7 @@
       const res = await fetch('/api/events', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ date: pendingDate, title, startTime: evStart.value, endTime: evEnd.value }),
+        body: JSON.stringify({ date: pendingDate, title, startTime: evStart.value, endTime: evEnd.value, browserId }),
       });
       if (!res.ok) {
         const { error } = await res.json();
@@ -153,7 +159,7 @@
     async function fetchAndRender() {
       const monthStr = `${year}-${String(month + 1).padStart(2, '0')}`;
       document.getElementById('cal-month').textContent = `${MONTHS[month]} ${year}`;
-      const res = await fetch(`/api/events?month=${monthStr}`);
+      const res = await fetch(`/api/events?month=${monthStr}&browserId=${browserId}`);
       events = await res.json();
       renderGrid();
     }
@@ -221,7 +227,7 @@
         del.textContent = '✕';
         del.addEventListener('click', async e => {
           e.stopPropagation();
-          await fetch(`/api/events/${ev.id}`, { method: 'DELETE' });
+          await fetch(`/api/events/${ev.id}?browserId=${browserId}`, { method: 'DELETE' });
           fetchAndRender();
         });
 

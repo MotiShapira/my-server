@@ -76,8 +76,9 @@ function writeEvents(events) {
 }
 
 app.get('/api/events', (req, res) => {
-  const { month } = req.query;
-  const all = readEvents();
+  const { month, browserId } = req.query;
+  let all = readEvents();
+  if (browserId) all = all.filter(e => e.browserId === browserId);
   res.json(month ? all.filter(e => e.date.startsWith(month)) : all);
 });
 
@@ -96,11 +97,12 @@ function overlaps(a, b) {
 }
 
 app.post('/api/events', (req, res) => {
-  const { date, title, startTime, endTime } = req.body;
+  const { date, title, startTime, endTime, browserId } = req.body;
   if (!date || !title) return res.status(400).json({ error: 'date and title required' });
   const all = readEvents();
-  const newEv = { date, title, startTime: startTime || '', endTime: endTime || '' };
-  if (startTime && all.filter(e => e.date === date).some(e => overlaps(e, newEv)))
+  const newEv = { date, title, startTime: startTime || '', endTime: endTime || '', browserId: browserId || '' };
+  const sameSource = all.filter(e => e.date === date && e.browserId === (browserId || ''));
+  if (startTime && sameSource.some(e => overlaps(e, newEv)))
     return res.status(409).json({ error: 'This event overlaps with an existing one.' });
   const event = { id: randomUUID(), ...newEv };
   all.push(event);
