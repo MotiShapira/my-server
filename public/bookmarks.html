@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bookmarks — My Server</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+
+  <nav>
+    <div class="nav-inner">
+      <a class="nav-brand" href="/">My Server</a>
+      <ul class="nav-links">
+        <li><a href="/">Home</a></li>
+        <li><a href="/about">About</a></li>
+        <li><a href="/bookmarks" class="active">Bookmarks</a></li>
+        <li><a href="/contact">Contact</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <main>
+    <h1>Bookmarks</h1>
+
+    <form id="add-form" class="bm-add-form">
+      <input type="text" id="bm-title" placeholder="Title" required>
+      <input type="url" id="bm-url" placeholder="https://example.com" required>
+      <button type="submit" class="submit-btn">Add</button>
+    </form>
+
+    <input type="search" id="bm-search" class="bm-search" placeholder="Search by title…">
+
+    <ul id="bm-list" class="bm-list"></ul>
+    <p id="bm-empty" class="bm-empty" style="display:none">No bookmarks found.</p>
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+      <span>&copy; 2024</span>
+      <a href="https://github.com" target="_blank" rel="noopener">GitHub</a>
+    </div>
+  </footer>
+
+  <script>
+    const addForm    = document.getElementById('add-form');
+    const titleInput = document.getElementById('bm-title');
+    const urlInput   = document.getElementById('bm-url');
+    const searchInput = document.getElementById('bm-search');
+    const list       = document.getElementById('bm-list');
+    const empty      = document.getElementById('bm-empty');
+
+    let browserId = localStorage.getItem('browserId');
+    if (!browserId) {
+      browserId = crypto.randomUUID();
+      localStorage.setItem('browserId', browserId);
+    }
+
+    let allBookmarks = [];
+
+    function render(bookmarks) {
+      list.innerHTML = '';
+      empty.style.display = bookmarks.length ? 'none' : 'block';
+      bookmarks.forEach(bm => {
+        const li = document.createElement('li');
+        li.className = 'bm-item';
+
+        const info = document.createElement('div');
+        info.className = 'bm-info';
+
+        const a = document.createElement('a');
+        a.className = 'bm-title';
+        a.href = bm.url;
+        a.target = '_blank';
+        a.rel = 'noopener';
+        a.textContent = bm.title;
+
+        const urlDiv = document.createElement('div');
+        urlDiv.className = 'bm-url';
+        urlDiv.textContent = bm.url;
+
+        info.appendChild(a);
+        info.appendChild(urlDiv);
+
+        const del = document.createElement('button');
+        del.className = 'bm-delete';
+        del.setAttribute('aria-label', 'Delete');
+        del.dataset.id = bm.id;
+        del.textContent = '✕';
+
+        li.appendChild(info);
+        li.appendChild(del);
+        list.appendChild(li);
+      });
+    }
+
+    function applySearch() {
+      const q = searchInput.value.trim().toLowerCase();
+      render(q ? allBookmarks.filter(bm => bm.title.toLowerCase().includes(q)) : allBookmarks);
+    }
+
+    async function fetchAndRender() {
+      const res = await fetch(`/api/bookmarks?browserId=${browserId}`);
+      allBookmarks = await res.json();
+      applySearch();
+    }
+
+    searchInput.addEventListener('input', applySearch);
+
+    addForm.addEventListener('submit', async e => {
+      e.preventDefault();
+      const res = await fetch('/api/bookmarks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: titleInput.value.trim(), url: urlInput.value.trim(), browserId }),
+      });
+      allBookmarks = await res.json();
+      searchInput.value = '';
+      applySearch();
+      addForm.reset();
+      titleInput.focus();
+    });
+
+    list.addEventListener('click', async e => {
+      const btn = e.target.closest('.bm-delete');
+      if (!btn) return;
+      const res = await fetch(`/api/bookmarks/${btn.dataset.id}?browserId=${browserId}`, { method: 'DELETE' });
+      allBookmarks = await res.json();
+      applySearch();
+    });
+
+    fetchAndRender();
+  </script>
+
+</body>
+</html>

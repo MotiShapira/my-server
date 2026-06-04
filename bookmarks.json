@@ -1,0 +1,44 @@
+[
+  {
+    "id": "6803a82a-10fb-4fe4-b4ce-ffc0489e203c",
+    "title": "ynet",
+    "url": "http://ymet.co.il",
+    "browserId": "b60b2231-db3c-4ad3-9f5f-1960e9ed95c0"
+  },
+  {
+    "id": "c68a1c35-da1f-4fa9-947b-ad288d098e8c",
+    "title": "google",
+    "url": "https://google.com",
+    "browserId": "b60b2231-db3c-4ad3-9f5f-1960e9ed95c0"
+  },
+  {
+    "id": "ac6879db-b99e-403d-9630-a264501eab17",
+    "title": "Facebook",
+    "url": "https://facebook.com",
+    "browserId": "c7badf26-b412-4c90-b697-ec83d9ab5e4d"
+  },
+  {
+    "id": "f61d7e24-1c0e-4fda-9a8c-38f38aaca979",
+    "title": "google",
+    "url": "https://google.com",
+    "browserId": "1108e313-8591-4d22-a550-6683248552c7"
+  },
+  {
+    "id": "5ea319df-e53c-495e-bb85-681d355a8dc5",
+    "title": "ynet",
+    "url": "http://ynet.co.il",
+    "browserId": "1108e313-8591-4d22-a550-6683248552c7"
+  },
+  {
+    "id": "f370aa19-8de7-4a28-99ee-7c0395459c37",
+    "title": "Google",
+    "url": "https://google.com",
+    "browserId": "browser-B"
+  },
+  {
+    "id": "ea82af65-a628-45f9-936b-dc98df582401",
+    "title": "Example",
+    "url": "https://example.com",
+    "browserId": "browser-A"
+  }
+]

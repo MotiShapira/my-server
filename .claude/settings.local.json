@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git init *)",
+      "Bash(git *)",
+      "Bash(npm init *)",
+      "Bash(npm install *)",
+      "Bash(pkill -f \"node server.js\")",
+      "Bash(node /home/motish/bookmark-manager/server.js)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:30300/)",
+      "Bash(explorer.exe \"http://localhost:30300/\")",
+      "Bash(curl -s http://localhost:30300/api/bookmarks)",
+      "Bash(curl -s http://localhost:30300/api/bookmarks?browserId=test)",
+      "Bash(curl -s -X POST http://localhost:30300/api/bookmarks -H 'Content-Type: application/json' -d '{\"title\":\"Example\",\"url\":\"https://example.com\",\"browserId\":\"browser-A\"}')",
+      "Bash(curl -s -X POST http://localhost:30300/api/bookmarks -H 'Content-Type: application/json' -d '{\"title\":\"Google\",\"url\":\"https://google.com\",\"browserId\":\"browser-B\"}')",
+      "Bash(curl -s \"http://localhost:30300/api/bookmarks?browserId=browser-A\")",
+      "Bash(curl -s \"http://localhost:30300/api/bookmarks?browserId=browser-B\")"
+    ]
+  }
+}
