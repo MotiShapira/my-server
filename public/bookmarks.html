@@ -115,6 +115,7 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ title: titleInput.value.trim(), url: urlInput.value.trim(), browserId }),
       });
+      if (!res.ok) return;
       allBookmarks = await res.json();
       searchInput.value = '';
       applySearch();
@@ -126,6 +127,7 @@
       const btn = e.target.closest('.bm-delete');
       if (!btn) return;
       const res = await fetch(`/api/bookmarks/${btn.dataset.id}?browserId=${browserId}`, { method: 'DELETE' });
+      if (!res.ok) return;
       allBookmarks = await res.json();
       applySearch();
     });
